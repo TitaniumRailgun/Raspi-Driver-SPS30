@@ -1,7 +1,7 @@
 # Raspi-Driver-SPS30
 Software to read out [Sensirion SPS30](https://www.sensirion.com/en/environmental-sensors/particulate-matter-sensors-pm25/) PM sensor values over I2C on Raspberry Pi.
 
-This software is a modified version of UnravelTEC's SPS30 Raspi Driver.
+This software is a modified version of UnravelTEC's SPS30 Raspi Driver. Used for hooking up SPS30 to RPI zero 2 W.
 
 Original software is licenced under GPLv3 by [UnravelTEC OG](https://unraveltec.com) (https://unraveltec.com), 2018.
 
