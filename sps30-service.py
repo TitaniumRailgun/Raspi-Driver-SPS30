@@ -1,6 +1,20 @@
 #!/usr/bin/env python3
 # coding=utf-8
 #
+#THIS PROGRAM IS A MODIFIED VERSION OF MICHAEL MAIER'S SPS30 RASPBERRY PI DRIVER
+#
+#ALL CREDITS GOES TO ORIGINAL OWNER
+#
+#
+#
+#
+#This program is also supposed to send json files over to a server, change corresponding server IP
+#Those lines will be commented out by default.
+#
+#
+#
+#
+#
 # Copyright © 2018 UnravelTEC
 # Michael Maier <michael.maier+github@unraveltec.com>
 #
@@ -24,17 +38,26 @@
 import pigpio # aptitude install python3-pigpio
 import time
 import struct
+import requests
+import json
 import sys
 import crcmod # aptitude install python3-crcmod
 import os, signal
 from subprocess import call
+import datetime
+
+import setproctitle
 
 import pprint
+
+setproctitle.setproctitle("sps30")
 
 def eprint(*args, **kwargs):
   print(*args, file=sys.stderr, **kwargs)
 
 LOGFILE = '/run/sensors/sps30/last'
+
+#now = datetime.datetime.now()
 
 PIGPIO_HOST = '127.0.0.1'
 I2C_SLAVE = 0x69
@@ -50,7 +73,7 @@ else:
   exit(1)
 
 def exit_gracefully(a,b):
-  print("exit")
+  print("exitted gracefully")
   stopMeasurement()
   os.path.isfile(LOGFILE) and os.access(LOGFILE, os.W_OK) and os.remove(LOGFILE)
   pi.i2c_close(h)
@@ -239,37 +262,82 @@ def printPrometheus(data):
   pm10 = calcFloat(data[18:24])
   if pm10 == 0:
     eprint("pm10 == 0; ignoring values")
-    return
-
-  output_string = 'particulate_matter_ppcm3{{size="pm0.5",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[24:30]))
-  output_string += 'particulate_matter_ppcm3{{size="pm1",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[30:36]))
-  output_string += 'particulate_matter_ppcm3{{size="pm2.5",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[36:42]))
-  output_string += 'particulate_matter_ppcm3{{size="pm4",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[42:48]))
-  output_string += 'particulate_matter_ppcm3{{size="pm10",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[48:54]))
-  output_string += 'particulate_matter_ugpm3{{size="pm1",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data))
-  output_string += 'particulate_matter_ugpm3{{size="pm2.5",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[6:12]))
+    return 
+  output_string = 'particulate_matter_ppcm3{{size="pm0.5"}} {0:.8f}\n'.format( calcFloat(data[24:30]))
+  output_string += 'particulate_matter_ppcm3{{size="pm1"}} {0:.8f}\n'.format( calcFloat(data[30:36]))
+  output_string += 'particulate_matter_ppcm3{{size="pm2.5"}} {0:.8f}\n'.format( calcFloat(data[36:42]))
+  output_string += 'particulate_matter_ppcm3{{size="pm4"}} {0:.8f}\n'.format( calcFloat(data[42:48]))
+  output_string += 'particulate_matter_ppcm3{{size="pm10"}} {0:.8f}\n'.format( calcFloat(data[48:54]))
+  output_string += 'particulate_matter_ugpm3{{size="pm1"}} {0:.8f}\n'.format( calcFloat(data))
+  output_string += 'particulate_matter_ugpm3{{size="pm2.5"}} {0:.8f}\n'.format( calcFloat(data[6:12]))
   output_string += 'particulate_matter_ugpm3{{size="pm4",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[12:18]))
   output_string += 'particulate_matter_ugpm3{{size="pm10",sensor="SPS30"}} {0:.8f}\n'.format( pm10 )
   output_string += 'particulate_matter_typpartsize_um{{sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[54:60]))
-  # print(output_string)
   logfilehandle = open(LOGFILE, "w",1)
   logfilehandle.write(output_string)
   logfilehandle.close()
 
-def printHuman(data):
-  print("pm0.5 count: %f" % calcFloat(data[24:30]))
-  print("pm1   count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[30:36]), calcFloat(data) ) )
-  print("pm2.5 count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[36:42]), calcFloat(data[6:12]) ) )
-  print("pm4   count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[42:48]), calcFloat(data[12:18]) ) )
-  print("pm10  count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[48:54]), calcFloat(data[18:24]) ) )
-  print("pm_typ: %f" % calcFloat(data[54:60]))
 
+
+
+def printHuman(data):
+    try:
+        print("pm0.5 count: %f" % calcFloat(data[24:30]))
+        print("pm1   count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[30:36]), calcFloat(data) ) )
+        print("pm2.5 count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[36:42]), calcFloat(data[6:12]) ) )
+        print("pm4   count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[42:48]), calcFloat(data[12:18]) ) )
+        print("pm10  count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[48:54]), calcFloat(data[18:24]) ) )
+        print("pm_typ: %f" % calcFloat(data[54:60]))
+    except KeyboardInterruption:
+        print("\n Program Exit")
+
+
+
+
+#work on this, setting pm variables
+#def sendServer(data):
+#
+#    try:
+#     WINDOWS_SERVER_IP="10.10.10.4"
+#     URL=f"http://{WINDOWS_SERVER_IP}:5000/pi/signal"
+#
+#
+#     now = datetime.datetime.now()
+#     test={
+#
+#           "time":str(now.strftime("%b")+" "+now.strftime("%d")+", "+now.strftime("%Y")+" "+now.strftime("%H")+" "+now.strftime("%M")+" "+now.strftime("%S")),
+#           "pm0.5":str(calcFloat(data[24:30])),
+#           "pm1":str(calcFloat(data[30:36])),
+#           "pm2.5":str(calcFloat(data[36:42])),
+#           "pm4":str(calcFloat(data[42:48])),
+#           "pm10":str(calcFloat(data[48:54]))
+#           }
+#     print(json.dumps(test))
+#     try:
+#         print(calcFloat(data[42:48]))
+#         
+#         while calcFloat(data[24:30])>13:
+#             r=requests.post(URLn,json=test,timeout=5)
+#             print("Status",r.status_code)
+#             print("Response",r.text)
+#             print("pm0.5 exceeds 100")
+#     except Exception as e:
+#         print("Error:",e)
+#    except KeyboardInterrupt:
+#        print("exitted gracefully?")
+#        exit
 
 def readPMValues():
-  data = readFromAddr(0x03,0x00,59)
-  printPrometheus(data)
-  if DEBUG:
-    printHuman(data)
+    data = readFromAddr(0x03,0x00,59)
+    try:
+     #print(now.strftime("%b")+" "+now.strftime("%d")+", "+now.strftime("%Y")+" "+now.strftime("%H")+" "+now.strftime("%M")+" "+now.strftime("%S"))
+     printPrometheus(data)
+     #printHuman(data)
+     sendServer(data)
+     if DEBUG:
+        printHuman(data)
+    except KeyboardInterrupt:
+     print("\n Program Terminated")
 
 def initialize():
   startMeasurement() or exit(1)
@@ -301,18 +369,30 @@ readSerialNr()
 readCleaningInterval()
 
 initialize()
+try:
+    i=0
+    while True:
+        ret = readDataReady()
+        if ret == -1:
+            eprint('resetting...',end='')
+            bigReset()
+            initialize()
+            continue
 
-while True:
-  ret = readDataReady()
-  if ret == -1:
-    eprint('resetting...',end='')
-    bigReset()
-    initialize()
-    continue
+        if ret == 0:
+            time.sleep(0.1)
+            continue
 
-  if ret == 0:
-    time.sleep(0.1)
-    continue
+        readPMValues()
+        time.sleep(1)
+        #i+=1
+except KeyboardInterrupt:
+    print("\nProgram terminated")
 
-  readPMValues()
-  time.sleep(0.9)
+
+
+
+
+
+
+
