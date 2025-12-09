@@ -3,7 +3,11 @@ Software to read out [Sensirion SPS30](https://www.sensirion.com/en/environmenta
 
 This software is a modified version of UnravelTEC's SPS30 Raspi Driver. Used for hooking up SPS30 to RPI zero 2 W.
 
+A little tutorial can be found [here](https://docs.google.com/document/d/1mvEEkeytSs1YHuRIW5k097-XDgNfY3EnlvUqSTKmFNg/edit?usp=sharing) (Google Docs)
+
+# ALL CREDITS GO TOWARDS UNRAVELTEC
 Original software is licenced under GPLv3 by [UnravelTEC OG](https://unraveltec.com) (https://unraveltec.com), 2018.
+
 
 ## Prerequisites
 
