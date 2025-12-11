@@ -298,8 +298,8 @@ def printHuman(data):
 #def sendServer(data):
 #
 #    try:
-#     WINDOWS_SERVER_IP="10.10.10.4"
-#     URL=f"http://{WINDOWS_SERVER_IP}:5000/pi/signal"
+#     WINDOWS_SERVER_IP="[set ip here]"
+#     URL=f"[set url here]"
 #
 #
 #     now = datetime.datetime.now()
